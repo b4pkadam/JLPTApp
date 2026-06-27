@@ -16,23 +16,14 @@
             --info: #74B9FF;
             --purple: #A29BFE;
             --pink: #FD79A8;
-            --bg-primary: #1A1A2E;
-            --bg-secondary: #16213E;
-            --bg-card: #0F3460;
-            --text-primary: #FFFFFF;
-            --text-secondary: #B8B8D1;
-            --shadow: 0 10px 40px rgba(0,0,0,0.3);
-            --radius: 16px;
-            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        [data-theme="light"] {
             --bg-primary: #F8F9FA;
             --bg-secondary: #FFFFFF;
             --bg-card: #FFFFFF;
             --text-primary: #2D3436;
             --text-secondary: #636E72;
             --shadow: 0 10px 40px rgba(0,0,0,0.1);
+            --radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         * {
@@ -134,17 +125,7 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
 
-        .theme-toggle {
-            background: var(--bg-card);
-            border: none;
-            padding: 8px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 1.1rem;
-            transition: var(--transition);
-        }
 
-        .theme-toggle:hover { transform: rotate(180deg); }
 
         .container {
             max-width: 900px;
@@ -872,7 +853,7 @@
                     <span class="xp-text" id="xpText">0/100 XP</span>
                 </div>
             </div>
-            <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+
         </div>
     </header>
 
@@ -1366,6 +1347,9 @@
                 </div>
             </div>
         </div>
+        <footer style="text-align: center; margin: 30px 0 15px 0; font-size: 0.85rem; color: var(--text-secondary); font-style: italic; border-top: 1px solid rgba(128,128,128,0.15); padding-top: 15px;">
+            designed by Bala
+        </footer>
     </main>
 
     <!-- Summary Modal -->
@@ -3069,12 +3053,45 @@
             }
         }
 
+        window.activeUtterances = [];
+
+        function getJapaneseVoice() {
+            if (!('speechSynthesis' in window)) return null;
+            const voices = window.speechSynthesis.getVoices();
+            let voice = voices.find(v => v.lang.includes('ja') && v.name.includes('Google'));
+            if (!voice) {
+                voice = voices.find(v => v.lang.toLowerCase().includes('ja'));
+            }
+            return voice;
+        }
+
+        function cancelSpeechSafe() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.resume();
+                window.speechSynthesis.cancel();
+                window.activeUtterances = [];
+            }
+        }
+
         function speakCharacter(text) {
             if ('speechSynthesis' in window) {
-                speechSynthesis.cancel();
+                cancelSpeechSafe();
                 const u = new SpeechSynthesisUtterance(text);
-                u.lang = 'ja-JP'; u.rate = 0.8;
-                speechSynthesis.speak(u);
+                u.lang = 'ja-JP'; 
+                u.rate = 0.8;
+                
+                const voice = getJapaneseVoice();
+                if (voice) u.voice = voice;
+                
+                window.activeUtterances.push(u);
+                u.onend = () => {
+                    window.activeUtterances = window.activeUtterances.filter(item => item !== u);
+                };
+                u.onerror = () => {
+                    window.activeUtterances = window.activeUtterances.filter(item => item !== u);
+                };
+                
+                window.speechSynthesis.speak(u);
             }
         }
 
@@ -3461,9 +3478,7 @@
             }
             
             // Stop speech synthesis if playing
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
+            cancelSpeechSafe();
             
             const timerText = document.getElementById('mockTimerText');
             if (timerText) timerText.style.display = 'none';
@@ -3605,6 +3620,139 @@
             }
         }
         
+        function stripRuby(html) {
+            if (!html) return '';
+            let cleaned = html.replace(/<rt>.*?<\/rt>/g, '');
+            cleaned = cleaned.replace(/<\/?ruby>/g, '');
+            return cleaned;
+        }
+
+        function generateDynamicMockQuestions() {
+            const finalQuestions = [];
+
+            // 1. MONDAI 1: Kanji Reading (12 Questions)
+            const m1Static = mockExamQuestions.filter(q => q.section === 'vocab' && q.mondai === 1);
+            const m1Dynamic = [];
+            const pool1 = shuffleArray([...kanjiData, ...jukugoData]);
+            for (const item of pool1) {
+                if (!item.char || !/[\u4e00-\u9faf]/.test(item.char)) continue;
+                const options = generateOptions(item.reading, 4, 'reading', item.type);
+                m1Dynamic.push({
+                    section: 'vocab',
+                    mondai: 1,
+                    questionText: `<div style="text-align: center; margin: 10px 0;">Choose the correct reading for: <br><strong style="font-size: 2.2rem; color: var(--primary);">${item.char}</strong></div>`,
+                    options: options,
+                    correctAnswer: item.reading,
+                    explanation: `${item.char} (${item.reading}) means: ${item.meaning}`
+                });
+            }
+            const m1Pool = shuffleArray([...m1Static, ...m1Dynamic]);
+            finalQuestions.push(...m1Pool.slice(0, 12));
+
+            // 2. MONDAI 2: Orthography (Kanji Selection) (8 Questions)
+            const m2Static = mockExamQuestions.filter(q => q.section === 'vocab' && q.mondai === 2);
+            const m2Dynamic = [];
+            const pool2 = shuffleArray([...kanjiData, ...jukugoData]);
+            for (const item of pool2) {
+                if (!item.char || !/[\u4e00-\u9faf]/.test(item.char)) continue;
+                const options = generateOptions(item.char, 4, 'char', item.type);
+                m2Dynamic.push({
+                    section: 'vocab',
+                    mondai: 2,
+                    questionText: `<div style="text-align: center; margin: 10px 0;">Choose the correct Kanji for: <br><strong style="font-size: 2.2rem; color: var(--primary);">${item.reading}</strong></div>`,
+                    options: options,
+                    correctAnswer: item.char,
+                    explanation: `${item.char} corresponds to ${item.reading} (${item.meaning}).`
+                });
+            }
+            const m2Pool = shuffleArray([...m2Static, ...m2Dynamic]);
+            finalQuestions.push(...m2Pool.slice(0, 8));
+
+            // 3. MONDAI 3: Contextually-defined Expressions (10 Questions)
+            const m3Static = mockExamQuestions.filter(q => q.section === 'vocab' && q.mondai === 3);
+            const m3Dynamic = [];
+            const pool3 = shuffleArray([...kotobaData, ...verbsData, ...adjectivesData]);
+            for (const item of pool3) {
+                if (!item.char || !item.meaning) continue;
+                const options = generateOptions(item.char, 4, 'char', item.type);
+                m3Dynamic.push({
+                    section: 'vocab',
+                    mondai: 3,
+                    questionText: `<div style="text-align: center; margin: 10px 0;">Choose the correct Japanese word for: <br><strong style="font-size: 1.8rem; color: var(--primary);">${item.meaning}</strong></div>`,
+                    options: options,
+                    correctAnswer: item.char,
+                    explanation: `${item.char} (${item.reading}) - ${item.meaning}`
+                });
+            }
+            const m3Pool = shuffleArray([...m3Static, ...m3Dynamic]);
+            finalQuestions.push(...m3Pool.slice(0, 10));
+
+            // 4. MONDAI 4: Paraphrases (5 Questions)
+            const m4Static = mockExamQuestions.filter(q => q.section === 'vocab' && q.mondai === 4);
+            const m4Shuffled = shuffleArray(m4Static).slice(0, 5);
+            finalQuestions.push(...m4Shuffled);
+
+            // 5. MONDAI 5: Grammar Forms (Particles & Conjugation) (16 Questions)
+            const m5Static = mockExamQuestions.filter(q => q.section === 'grammar' && q.mondai === 5);
+            const m5Dynamic = [];
+            const pool5 = shuffleArray([
+                ...particlesData.map(p => ({ ...p, isParticle: true })),
+                ...grammarData.map(g => ({ ...g, isParticle: false }))
+            ]);
+            for (const item of pool5) {
+                if (!item.example || !item.char && !item.pattern) continue;
+                const target = item.isParticle ? item.char : item.pattern.replace('〜', '');
+                if (!item.example.includes(target)) continue;
+
+                const questionText = item.example.replace(target, ' ____ ');
+                const typeForOptions = item.isParticle ? 'particles' : 'grammar';
+                const fieldForOptions = item.isParticle ? 'char' : 'pattern';
+                const options = generateOptions(item.isParticle ? item.char : item.pattern, 4, fieldForOptions, typeForOptions);
+
+                const cleanOptions = options.map(o => o.replace('〜', ''));
+                const cleanCorrect = target;
+
+                m5Dynamic.push({
+                    section: 'grammar',
+                    mondai: 5,
+                    questionText: `<div style="text-align: center; margin: 10px 0;">Fill in the blank:<br><strong style="font-size: 1.8rem; color: var(--primary);">${questionText}</strong></div>`,
+                    options: cleanOptions,
+                    correctAnswer: cleanCorrect,
+                    explanation: `Correct pattern is "${target}" (${item.meaning}). Sentence: "${item.example}" (${item.example_reading})`
+                });
+            }
+            const m5Pool = shuffleArray([...m5Static, ...m5Dynamic]);
+            finalQuestions.push(...m5Pool.slice(0, 16));
+
+            // 6. MONDAI 6: Scrambled Sentence (5 Questions)
+            const m6Static = mockExamQuestions.filter(q => q.section === 'grammar' && q.mondai === 6);
+            const m6Shuffled = shuffleArray(m6Static).slice(0, 5);
+            finalQuestions.push(...m6Shuffled);
+
+            // 7. MONDAI 7: Text Grammar / Reading Passage (5 Questions)
+            const m7Static = mockExamQuestions.filter(q => q.section === 'grammar' && q.mondai === 7);
+            finalQuestions.push(...m7Static);
+
+            // 8. SECTION 3: LISTENING (Mondai 8 to 11) - 24 Questions
+            const listeningStatic = mockExamQuestions.filter(q => q.section === 'listening');
+            const m8 = shuffleArray(listeningStatic.filter(q => q.mondai === 8)).slice(0, 6);
+            const m9 = shuffleArray(listeningStatic.filter(q => q.mondai === 9)).slice(0, 6);
+            const m10 = shuffleArray(listeningStatic.filter(q => q.mondai === 10)).slice(0, 6);
+            const m11 = shuffleArray(listeningStatic.filter(q => q.mondai === 11)).slice(0, 6);
+            finalQuestions.push(...m8, ...m9, ...m10, ...m11);
+
+            // Shuffle option lists of all selected questions (except listening where options correspond to audio choice numbers)
+            return finalQuestions.map(q => {
+                if (q.section === 'listening') {
+                    return q;
+                }
+                return {
+                    ...q,
+                    options: shuffleArray(q.options)
+                };
+            });
+        }
+
         function initRealMockExam() {
             gameState.isMockTest = true;
             gameState.currentSection = 1;
@@ -3617,15 +3765,10 @@
             lastSpokenQuestion = -1;
             gameState.seenMondais = {};
             
-            // Load questions from imported mockExamQuestions array and shuffle their options
-            gameState.questions = mockExamQuestions.map(q => {
-                return {
-                    ...q,
-                    options: shuffleArray(q.options)
-                };
-            });
-            gameState.userAnswers = Array(mockExamQuestions.length).fill(null);
-            gameState.markedForReview = Array(mockExamQuestions.length).fill(false);
+            // Generate a dynamic mock exam using the large database for unique questions
+            gameState.questions = generateDynamicMockQuestions();
+            gameState.userAnswers = Array(gameState.questions.length).fill(null);
+            gameState.markedForReview = Array(gameState.questions.length).fill(false);
             
             gameState.mockScores = {
                 vocab: { correct: 0, total: 35 },
@@ -3720,11 +3863,21 @@
 
         function speakMondaiInstructions(text, isListening) {
             if ('speechSynthesis' in window) {
-                window.speechSynthesis.resume();
-                window.speechSynthesis.cancel();
+                cancelSpeechSafe();
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'ja-JP';
                 utterance.rate = 0.85;
+                
+                const voice = getJapaneseVoice();
+                if (voice) utterance.voice = voice;
+                
+                window.activeUtterances.push(utterance);
+                utterance.onend = () => {
+                    window.activeUtterances = window.activeUtterances.filter(item => item !== utterance);
+                };
+                utterance.onerror = () => {
+                    window.activeUtterances = window.activeUtterances.filter(item => item !== utterance);
+                };
                 
                 setTimeout(() => {
                     window.speechSynthesis.speak(utterance);
@@ -3799,9 +3952,7 @@
             const modal = document.getElementById('mockMondaiIntroModal');
             if (modal) modal.classList.remove('active');
             
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
+            cancelSpeechSafe();
             
             const q = gameState.questions[gameState.currentQuestion];
             if (q && q.section === 'listening') {
@@ -3900,7 +4051,7 @@
                                     ${labelNum}
                                 </div>
                                 <div class="option-text-label" style="flex: 1; font-size: 1.05rem; ${labelWeight}">
-                                    ${o}
+                                    ${q.mondai === 2 ? stripRuby(o) : o}
                                 </div>
                                 <div class="option-check-mark" style="color: var(--primary); font-size: 1.2rem; align-items: center; font-weight: bold; ${checkDisplay}">
                                     ✔
@@ -3925,14 +4076,20 @@
                     const currentSessionId = Math.random();
                     activeSpeechSessionId = currentSessionId;
                     
-                    window.speechSynthesis.cancel();
+                    cancelSpeechSafe();
                     lastSpokenMondai = q.mondai;
                     
                     const utterance = new SpeechSynthesisUtterance(instr.jp);
                     utterance.lang = 'ja-JP';
                     utterance.rate = 0.85;
                     
+                    const voice = getJapaneseVoice();
+                    if (voice) utterance.voice = voice;
+                    
+                    window.activeUtterances.push(utterance);
+                    
                     utterance.onend = () => {
+                        window.activeUtterances = window.activeUtterances.filter(item => item !== utterance);
                         if (activeSpeechSessionId !== currentSessionId) return;
                         setTimeout(() => {
                             if (gameState.isMockTest && gameState.currentQuestion === lastSpokenQuestion) {
@@ -3942,6 +4099,7 @@
                     };
                     
                     utterance.onerror = (e) => {
+                        window.activeUtterances = window.activeUtterances.filter(item => item !== utterance);
                         if (activeSpeechSessionId !== currentSessionId) return;
                         if (e.error !== 'interrupted') {
                             speakListeningScript(q.audioScript);
@@ -3970,8 +4128,7 @@
             const currentSessionId = Math.random();
             activeSpeechSessionId = currentSessionId;
             
-            window.speechSynthesis.resume(); // Unlock SpeechSynthesis engine
-            window.speechSynthesis.cancel(); // Stop any ongoing speech
+            cancelSpeechSafe();
             
             const lines = script.split('\n').map(l => l.trim()).filter(l => l.length > 0);
             if (lines.length === 0) return;
@@ -3982,7 +4139,7 @@
                 if (activeSpeechSessionId !== currentSessionId) return;
                 
                 if (!gameState.isMockTest) {
-                    window.speechSynthesis.cancel();
+                    cancelSpeechSafe();
                     return;
                 }
                 
@@ -4010,6 +4167,9 @@
                 utterance.lang = 'ja-JP';
                 utterance.rate = 0.85;
                 
+                const voice = getJapaneseVoice();
+                if (voice) utterance.voice = voice;
+                
                 // Use pitch shifting to simulate male/female voices on offline engine
                 if (speaker === 'male') {
                     utterance.pitch = 0.65;
@@ -4019,13 +4179,17 @@
                     utterance.pitch = 1.0;
                 }
                 
+                window.activeUtterances.push(utterance);
+                
                 utterance.onend = () => {
+                    window.activeUtterances = window.activeUtterances.filter(item => item !== utterance);
                     if (activeSpeechSessionId !== currentSessionId) return;
                     currentLineIndex++;
                     setTimeout(speakNextLine, 500); // 500ms pause
                 };
                 
                 utterance.onerror = (e) => {
+                    window.activeUtterances = window.activeUtterances.filter(item => item !== utterance);
                     console.error("Speech Synthesis line play failed:", e);
                     if (activeSpeechSessionId !== currentSessionId) return;
                     if (e.error !== 'interrupted') {
@@ -4281,9 +4445,7 @@
         }
 
         function proceedMockSectionSubmit() {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
+            cancelSpeechSafe();
             
             scoreMockSection(gameState.currentSection);
             
@@ -4765,13 +4927,7 @@
             });
         }
 
-        // ===== THEME =====
-        function toggleTheme() {
-            const isDark = document.body.getAttribute('data-theme') !== 'light';
-            document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-            document.querySelector('.theme-toggle').textContent = isDark ? '☀️' : '🌙';
-            localStorage.setItem('theme', isDark ? 'light' : 'dark');
-        }
+
 
         // ===== CONFETTI =====
         function createConfetti() {
@@ -4817,20 +4973,39 @@
             
             const savedSR = localStorage.getItem('spacedRepetition');
             if (savedSR) spacedRepetition = JSON.parse(savedSR);
-            
-            const theme = localStorage.getItem('theme');
-            if (theme) {
-                document.body.setAttribute('data-theme', theme);
-                document.querySelector('.theme-toggle').textContent = theme === 'light' ? '☀️' : '🌙';
-            }
         }
 
         // Prime Web Speech synthesis engine for Chrome/Safari compatibility
+        window.activeUtterances = [];
         if ('speechSynthesis' in window) {
             window.speechSynthesis.getVoices();
             window.speechSynthesis.addEventListener('voiceschanged', () => {
                 window.speechSynthesis.getVoices();
             });
+            
+            // Auto-unlock speech synthesis on first user interaction (critical for Chrome on hosted domains)
+            const unlockSpeechSynthesis = () => {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.resume();
+                    const u = new SpeechSynthesisUtterance('あ'); // Non-empty string to prevent Chrome queue freeze
+                    u.volume = 0; // Silent
+                    u.rate = 1.0;
+                    
+                    window.activeUtterances.push(u);
+                    u.onend = () => {
+                        window.activeUtterances = window.activeUtterances.filter(item => item !== u);
+                    };
+                    u.onerror = () => {
+                        window.activeUtterances = window.activeUtterances.filter(item => item !== u);
+                    };
+                    
+                    window.speechSynthesis.speak(u);
+                }
+                document.removeEventListener('click', unlockSpeechSynthesis);
+                document.removeEventListener('touchstart', unlockSpeechSynthesis);
+            };
+            document.addEventListener('click', unlockSpeechSynthesis);
+            document.addEventListener('touchstart', unlockSpeechSynthesis);
         }
 
         // ===== START =====
