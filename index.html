@@ -1115,7 +1115,10 @@
                         <div id="mockInstructionHeader" style="background: rgba(99, 102, 241, 0.06); border-left: 4px solid var(--primary); padding: 18px 24px; border-radius: 8px; font-size: 0.95rem; line-height: 1.6; margin-bottom: 24px; border: 1px solid rgba(99, 102, 241, 0.2);"></div>
                         
                         <!-- Toggle Example action row -->
-                        <div style="display: flex; justify-content: flex-end; margin-bottom: 15px;">
+                        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 15px;">
+                            <button class="level-btn" id="listenAgainBtn" style="display: none; min-width: auto; padding: 6px 14px; margin: 0; font-size: 0.8rem; background: var(--primary); color: white; border-color: transparent; border-radius: 6px; align-items: center; gap: 4px;" onclick="replayCurrentQuestionAudio()">
+                                🔊 Listen Again (もう一度聞く)
+                            </button>
                             <button class="level-btn" id="toggleExampleBtn" style="min-width: auto; padding: 6px 14px; margin: 0; font-size: 0.8rem; background: transparent; border-color: rgba(128,128,128,0.3); border-radius: 6px;" onclick="forceShowMondaiInstructions()">
                                 ❓ View Instructions (説明)
                             </button>
@@ -3055,14 +3058,36 @@
 
         window.activeUtterances = [];
 
-        function getJapaneseVoice() {
+        function getJapaneseVoice(role) {
             if (!('speechSynthesis' in window)) return null;
             const voices = window.speechSynthesis.getVoices();
-            let voice = voices.find(v => v.lang.includes('ja') && v.name.includes('Google'));
-            if (!voice) {
-                voice = voices.find(v => v.lang.toLowerCase().includes('ja'));
+            const jaVoices = voices.filter(v => v.lang.toLowerCase().includes('ja') || v.lang.toLowerCase().includes('jp'));
+            if (jaVoices.length === 0) return null;
+            
+            console.log("Available Japanese Voices for role " + role + ":", jaVoices.map(v => v.name));
+
+            if (role === 'male') {
+                const voice = jaVoices.find(v => {
+                    const name = v.name.toLowerCase();
+                    return name.includes('otoya') || name.includes('ichiro') || name.includes('male') || (name.includes('siri') && name.includes('2')) || name.includes('yuto');
+                });
+                if (voice) return voice;
+            } else if (role === 'female') {
+                const voice = jaVoices.find(v => {
+                    const name = v.name.toLowerCase();
+                    return name.includes('kyoko') || name.includes('haruka') || name.includes('female') || (name.includes('siri') && name.includes('1')) || name.includes('sakura');
+                });
+                if (voice) return voice;
+            } else if (role === 'instructor' || role === 'narrator') {
+                const voice = jaVoices.find(v => {
+                    const name = v.name.toLowerCase();
+                    return name.includes('siri') || name.includes('google') || name.includes('instructor') || name.includes('narrator');
+                });
+                if (voice) return voice;
             }
-            return voice;
+            
+            const googleVoice = jaVoices.find(v => v.name.toLowerCase().includes('google'));
+            return googleVoice || jaVoices[0];
         }
 
         function cancelSpeechSafe() {
@@ -3080,7 +3105,7 @@
                 u.lang = 'ja-JP'; 
                 u.rate = 0.8;
                 
-                const voice = getJapaneseVoice();
+                const voice = getJapaneseVoice('instructor');
                 if (voice) u.voice = voice;
                 
                 window.activeUtterances.push(u);
@@ -3091,6 +3116,9 @@
                     window.activeUtterances = window.activeUtterances.filter(item => item !== u);
                 };
                 
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.resume();
+                }
                 window.speechSynthesis.speak(u);
             }
         }
@@ -3534,7 +3562,7 @@
 
         const jptInstructions = {
             1: {
-                jp: "______の言葉の読み方として最もよいものを、1・2・3・4から一つ選びなさい。",
+                jp: "もんだい１　　の ことばは ひらがなで どう かきますか。 １・２・３・４から いちばん いい ものを ひとつ えらんで ください。",
                 en: "Choose the correct Hiragana reading for the underlined Kanji.",
                 example: "例：昨日は**木曜日**でした。<br>1. かようび &nbsp;&nbsp; 2. すいようび &nbsp;&nbsp; 3. <strong>もくようび (✓)</strong> &nbsp;&nbsp; 4. きんようび"
             },
@@ -3632,106 +3660,31 @@
 
             // 1. MONDAI 1: Kanji Reading (12 Questions)
             const m1Static = mockExamQuestions.filter(q => q.section === 'vocab' && q.mondai === 1);
-            const m1Dynamic = [];
-            const pool1 = shuffleArray([...kanjiData, ...jukugoData]);
-            for (const item of pool1) {
-                if (!item.char || !/[\u4e00-\u9faf]/.test(item.char)) continue;
-                const options = generateOptions(item.reading, 4, 'reading', item.type);
-                m1Dynamic.push({
-                    section: 'vocab',
-                    mondai: 1,
-                    questionText: `<div style="text-align: center; margin: 10px 0;">Choose the correct reading for: <br><strong style="font-size: 2.2rem; color: var(--primary);">${item.char}</strong></div>`,
-                    options: options,
-                    correctAnswer: item.reading,
-                    explanation: `${item.char} (${item.reading}) means: ${item.meaning}`
-                });
-            }
-            const m1Pool = shuffleArray([...m1Static, ...m1Dynamic]);
-            finalQuestions.push(...m1Pool.slice(0, 12));
+            finalQuestions.push(...shuffleArray(m1Static).slice(0, 12));
 
             // 2. MONDAI 2: Orthography (Kanji Selection) (8 Questions)
             const m2Static = mockExamQuestions.filter(q => q.section === 'vocab' && q.mondai === 2);
-            const m2Dynamic = [];
-            const pool2 = shuffleArray([...kanjiData, ...jukugoData]);
-            for (const item of pool2) {
-                if (!item.char || !/[\u4e00-\u9faf]/.test(item.char)) continue;
-                const options = generateOptions(item.char, 4, 'char', item.type);
-                m2Dynamic.push({
-                    section: 'vocab',
-                    mondai: 2,
-                    questionText: `<div style="text-align: center; margin: 10px 0;">Choose the correct Kanji for: <br><strong style="font-size: 2.2rem; color: var(--primary);">${item.reading}</strong></div>`,
-                    options: options,
-                    correctAnswer: item.char,
-                    explanation: `${item.char} corresponds to ${item.reading} (${item.meaning}).`
-                });
-            }
-            const m2Pool = shuffleArray([...m2Static, ...m2Dynamic]);
-            finalQuestions.push(...m2Pool.slice(0, 8));
+            finalQuestions.push(...shuffleArray(m2Static).slice(0, 8));
 
             // 3. MONDAI 3: Contextually-defined Expressions (10 Questions)
             const m3Static = mockExamQuestions.filter(q => q.section === 'vocab' && q.mondai === 3);
-            const m3Dynamic = [];
-            const pool3 = shuffleArray([...kotobaData, ...verbsData, ...adjectivesData]);
-            for (const item of pool3) {
-                if (!item.char || !item.meaning) continue;
-                const options = generateOptions(item.char, 4, 'char', item.type);
-                m3Dynamic.push({
-                    section: 'vocab',
-                    mondai: 3,
-                    questionText: `<div style="text-align: center; margin: 10px 0;">Choose the correct Japanese word for: <br><strong style="font-size: 1.8rem; color: var(--primary);">${item.meaning}</strong></div>`,
-                    options: options,
-                    correctAnswer: item.char,
-                    explanation: `${item.char} (${item.reading}) - ${item.meaning}`
-                });
-            }
-            const m3Pool = shuffleArray([...m3Static, ...m3Dynamic]);
-            finalQuestions.push(...m3Pool.slice(0, 10));
+            finalQuestions.push(...shuffleArray(m3Static).slice(0, 10));
 
             // 4. MONDAI 4: Paraphrases (5 Questions)
             const m4Static = mockExamQuestions.filter(q => q.section === 'vocab' && q.mondai === 4);
-            const m4Shuffled = shuffleArray(m4Static).slice(0, 5);
-            finalQuestions.push(...m4Shuffled);
+            finalQuestions.push(...shuffleArray(m4Static).slice(0, 5));
 
             // 5. MONDAI 5: Grammar Forms (Particles & Conjugation) (16 Questions)
             const m5Static = mockExamQuestions.filter(q => q.section === 'grammar' && q.mondai === 5);
-            const m5Dynamic = [];
-            const pool5 = shuffleArray([
-                ...particlesData.map(p => ({ ...p, isParticle: true })),
-                ...grammarData.map(g => ({ ...g, isParticle: false }))
-            ]);
-            for (const item of pool5) {
-                if (!item.example || !item.char && !item.pattern) continue;
-                const target = item.isParticle ? item.char : item.pattern.replace('〜', '');
-                if (!item.example.includes(target)) continue;
-
-                const questionText = item.example.replace(target, ' ____ ');
-                const typeForOptions = item.isParticle ? 'particles' : 'grammar';
-                const fieldForOptions = item.isParticle ? 'char' : 'pattern';
-                const options = generateOptions(item.isParticle ? item.char : item.pattern, 4, fieldForOptions, typeForOptions);
-
-                const cleanOptions = options.map(o => o.replace('〜', ''));
-                const cleanCorrect = target;
-
-                m5Dynamic.push({
-                    section: 'grammar',
-                    mondai: 5,
-                    questionText: `<div style="text-align: center; margin: 10px 0;">Fill in the blank:<br><strong style="font-size: 1.8rem; color: var(--primary);">${questionText}</strong></div>`,
-                    options: cleanOptions,
-                    correctAnswer: cleanCorrect,
-                    explanation: `Correct pattern is "${target}" (${item.meaning}). Sentence: "${item.example}" (${item.example_reading})`
-                });
-            }
-            const m5Pool = shuffleArray([...m5Static, ...m5Dynamic]);
-            finalQuestions.push(...m5Pool.slice(0, 16));
+            finalQuestions.push(...shuffleArray(m5Static).slice(0, 16));
 
             // 6. MONDAI 6: Scrambled Sentence (5 Questions)
             const m6Static = mockExamQuestions.filter(q => q.section === 'grammar' && q.mondai === 6);
-            const m6Shuffled = shuffleArray(m6Static).slice(0, 5);
-            finalQuestions.push(...m6Shuffled);
+            finalQuestions.push(...shuffleArray(m6Static).slice(0, 5));
 
-            // 7. MONDAI 7: Text Grammar / Reading Passage (5 Questions)
+            // 7. MONDAI 7: Reading Passage (5 Questions)
             const m7Static = mockExamQuestions.filter(q => q.section === 'grammar' && q.mondai === 7);
-            finalQuestions.push(...m7Static);
+            finalQuestions.push(...shuffleArray(m7Static).slice(0, 5));
 
             // 8. SECTION 3: LISTENING (Mondai 8 to 11) - 24 Questions
             const listeningStatic = mockExamQuestions.filter(q => q.section === 'listening');
@@ -3866,9 +3819,10 @@
                 cancelSpeechSafe();
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'ja-JP';
-                utterance.rate = 0.85;
+                utterance.rate = 0.8;
+                utterance.pitch = 1.05;
                 
-                const voice = getJapaneseVoice();
+                const voice = getJapaneseVoice('instructor');
                 if (voice) utterance.voice = voice;
                 
                 window.activeUtterances.push(utterance);
@@ -3880,6 +3834,9 @@
                 };
                 
                 setTimeout(() => {
+                    if ('speechSynthesis' in window) {
+                        window.speechSynthesis.resume();
+                    }
                     window.speechSynthesis.speak(utterance);
                 }, 100);
             }
@@ -4002,6 +3959,16 @@
 
             content.innerHTML = generateMockQuizHTML(q);
             
+            // Manage Listen Again button display
+            const listenBtn = document.getElementById('listenAgainBtn');
+            if (listenBtn) {
+                if (q.section === 'listening') {
+                    listenBtn.style.display = 'flex';
+                } else {
+                    listenBtn.style.display = 'none';
+                }
+            }
+            
             if (gameState.currentSection === 3) {
                 speakListeningScriptOnce(q);
             }
@@ -4011,18 +3978,18 @@
 
         function generateMockQuizHTML(q) {
             let display = '';
+            const imageHTML = q.image ? `<div class="question-image-box" style="text-align: center; margin: 10px 0 15px 0;"><img src="${q.image}" style="max-width: 100%; max-height: 250px; border-radius: 8px; border: 1px solid rgba(128,128,128,0.15);" alt="Question Diagram"></div>` : '';
             
             if (q.passage) {
                 display = `<div class="passage-box" style="background: var(--bg-secondary); padding: 18px; border-radius: 8px; margin-bottom: 15px; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; text-align: left; border: 1px solid rgba(128,128,128,0.15); color: var(--text-primary);">${formatQuestionText(q.passage)}</div>
+                           ${imageHTML}
                            <div class="question-text" style="font-weight: 700; margin-bottom: 12px; font-size: 1.2rem; line-height: 1.5; color: var(--text-primary);">${formatQuestionText(q.questionText)}</div>`;
             } else if (q.audioScript) {
-                display = `<div class="listening-box" style="text-align: center; padding: 18px; background: var(--bg-secondary); border: 1px solid rgba(128,128,128,0.15); border-radius: 8px; margin-bottom: 15px;">
-                            <button class="audio-btn" style="font-size: 1.3rem; padding: 10px 20px; border-radius: 6px;" onclick="playCurrentMockAudio()">🔊 Play Question Audio</button>
-                            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 6px;">Listen to the spoken Japanese script once.</p>
-                           </div>
+                display = `${imageHTML}
                            <div class="question-text" style="font-weight: 700; margin-bottom: 12px; font-size: 1.2rem; line-height: 1.5; color: var(--text-primary);">${formatQuestionText(q.questionText)}</div>`;
             } else {
-                display = `<div class="character-display" style="font-size: 1.45rem; font-weight: 700; margin: 15px 0; min-height: auto; padding: 12px; line-height: 1.6; color: var(--text-primary); text-align: left; background: var(--bg-secondary); border-radius: 8px; border: 1px solid rgba(128,128,128,0.15);">${formatQuestionText(q.questionText)}</div>`;
+                display = `<div class="character-display" style="font-size: 1.45rem; font-weight: 700; margin: 15px 0; min-height: auto; padding: 12px; line-height: 1.6; color: var(--text-primary); text-align: left; background: var(--bg-secondary); border-radius: 8px; border: 1px solid rgba(128,128,128,0.15);">${formatQuestionText(q.questionText)}</div>
+                           ${imageHTML}`;
             }
             
             const selectedAnswer = gameState.userAnswers[gameState.currentQuestion];
@@ -4081,9 +4048,10 @@
                     
                     const utterance = new SpeechSynthesisUtterance(instr.jp);
                     utterance.lang = 'ja-JP';
-                    utterance.rate = 0.85;
+                    utterance.rate = 0.8;
+                    utterance.pitch = 1.05;
                     
-                    const voice = getJapaneseVoice();
+                    const voice = getJapaneseVoice('instructor');
                     if (voice) utterance.voice = voice;
                     
                     window.activeUtterances.push(utterance);
@@ -4107,6 +4075,9 @@
                     };
                     
                     setTimeout(() => {
+                        if ('speechSynthesis' in window) {
+                            window.speechSynthesis.resume();
+                        }
                         window.speechSynthesis.speak(utterance);
                     }, 100);
                 }
@@ -4118,8 +4089,14 @@
         function playCurrentMockAudio() {
             const q = gameState.questions[gameState.currentQuestion];
             if (q && q.audioScript) {
+                cancelSpeechSafe();
+                lastSpokenQuestion = -1;
                 speakListeningScript(q.audioScript);
             }
+        }
+        
+        function replayCurrentQuestionAudio() {
+            playCurrentMockAudio();
         }
         
         function speakListeningScript(script) {
@@ -4147,36 +4124,47 @@
                 
                 const line = lines[currentLineIndex];
                 let textToSpeak = line;
-                let speaker = 'narrator';
+                let speaker = 'instructor';
                 
-                if (line.startsWith('男：') || line.startsWith('男:')) {
-                    textToSpeak = line.substring(2);
+                if (line.startsWith('男：') || line.startsWith('男:') || line.startsWith('男の子：') || line.startsWith('男の子:')) {
+                    textToSpeak = line.replace(/^(男|男の子)[：:]/, '');
                     speaker = 'male';
-                } else if (line.startsWith('女：') || line.startsWith('女:') || line.startsWith('母：') || line.startsWith('母:')) {
-                    textToSpeak = line.substring(2);
+                } else if (line.startsWith('女：') || line.startsWith('女:') || line.startsWith('母：') || line.startsWith('母:') || line.startsWith('女の子：') || line.startsWith('女の子:')) {
+                    textToSpeak = line.replace(/^(女|母|女の子)[：:]/, '');
                     speaker = 'female';
                 } else if (line.startsWith('先生：') || line.startsWith('先生:')) {
                     textToSpeak = line.substring(3);
-                    speaker = 'female';
+                    speaker = 'instructor';
                 } else if (line.startsWith('相手：') || line.startsWith('相手:')) {
                     textToSpeak = line.substring(3);
                     speaker = 'male';
+                } else if (line.startsWith('質問：') || line.startsWith('質問:') || line.startsWith('アナウンス：') || line.startsWith('アナウンス:')) {
+                    textToSpeak = line.replace(/^(質問|アナウンス)[：:]/, '');
+                    speaker = 'instructor';
                 }
+                
+                // Strip any remaining colons and replace with a period to prevent reading the word 'colon'
+                textToSpeak = textToSpeak.replace(/[：:]/g, '。');
                 
                 const utterance = new SpeechSynthesisUtterance(textToSpeak);
                 utterance.lang = 'ja-JP';
-                utterance.rate = 0.85;
                 
-                const voice = getJapaneseVoice();
-                if (voice) utterance.voice = voice;
-                
-                // Use pitch shifting to simulate male/female voices on offline engine
-                if (speaker === 'male') {
-                    utterance.pitch = 0.65;
+                if (speaker === 'instructor') {
+                    utterance.voice = getJapaneseVoice('instructor');
+                    utterance.pitch = 1.05;
+                    utterance.rate = 0.82;
+                } else if (speaker === 'male') {
+                    utterance.voice = getJapaneseVoice('male');
+                    utterance.pitch = 0.8;
+                    utterance.rate = 0.88;
                 } else if (speaker === 'female') {
-                    utterance.pitch = 1.35;
+                    utterance.voice = getJapaneseVoice('female');
+                    utterance.pitch = 1.25;
+                    utterance.rate = 0.88;
                 } else {
+                    utterance.voice = getJapaneseVoice('instructor');
                     utterance.pitch = 1.0;
+                    utterance.rate = 0.85;
                 }
                 
                 window.activeUtterances.push(utterance);
@@ -4198,6 +4186,9 @@
                     }
                 };
                 
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.resume();
+                }
                 window.speechSynthesis.speak(utterance);
             }
             
@@ -4644,6 +4635,7 @@
                 }
                 
                 let passageHTML = q.passage ? `<div style="background: var(--bg-primary); padding: 12px; border-radius: 6px; margin: 8px 0; font-size: 0.9rem; white-space: pre-wrap; border-left: 3px solid var(--primary);">${q.passage}</div>` : '';
+                let imageHTML = q.image ? `<div style="text-align: center; margin: 8px 0;"><img src="${q.image}" style="max-width: 100%; max-height: 150px; border-radius: 6px; border: 1px solid rgba(128,128,128,0.15);" alt="Question Diagram"></div>` : '';
                 let audioHTML = q.audioScript ? `<div style="background: var(--bg-primary); padding: 12px; border-radius: 6px; margin: 8px 0; font-size: 0.85rem; border-left: 3px solid var(--success); font-family: monospace; color: var(--text-secondary);"><span style="color: var(--success); font-weight: bold;">Audio Script:</span><br>${q.audioScript.replace(/\n/g, '<br>')}</div>` : '';
                 
                 html += `
@@ -4655,6 +4647,7 @@
                             ${statusBadge}
                         </div>
                         ${passageHTML}
+                        ${imageHTML}
                         ${audioHTML}
                         <div style="font-size: 1.1rem; font-weight: bold; margin: 10px 0;">${q.questionText}</div>
                         
