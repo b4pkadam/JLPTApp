@@ -833,6 +833,265 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.4; }
         }
+
+        /* ===== Mobile Mock Test Responsive System ===== */
+        .mock-palette-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1001;
+            backdrop-filter: blur(3px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .mock-palette-fab {
+            display: none;
+            position: fixed;
+            bottom: 95px;
+            right: 20px;
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-size: 1.4rem;
+            box-shadow: 0 6px 20px rgba(108, 92, 231, 0.45);
+            z-index: 999;
+            cursor: pointer;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s ease;
+        }
+
+        .mock-palette-fab:active {
+            transform: scale(0.9) rotate(5deg);
+            background: var(--primary-dark);
+        }
+
+        @media (max-width: 768px) {
+            /* Enable backdrop when active */
+            .palette-open .mock-palette-backdrop {
+                display: block !important;
+                opacity: 1 !important;
+            }
+
+            /* Enable floating action button */
+            .mock-palette-fab {
+                display: flex !important;
+            }
+
+            /* Header responsive tweaks */
+            .mock-header {
+                height: auto !important;
+                min-height: auto !important;
+                padding: 10px 14px !important;
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+                justify-content: space-between !important;
+            }
+
+            .mock-exit-btn {
+                padding: 6px 12px !important;
+                font-size: 0.85rem !important;
+            }
+
+            .mock-header-center {
+                order: -1 !important;
+                width: 100% !important;
+                text-align: center !important;
+                border-bottom: 1px solid rgba(128,128,128,0.1) !important;
+                padding-bottom: 6px !important;
+                margin-bottom: 2px !important;
+            }
+
+            .mock-header-center span:first-child {
+                font-size: 0.9rem !important;
+                display: inline-block !important;
+            }
+
+            .mock-header-center span#mockHeaderSectionName {
+                font-size: 0.75rem !important;
+                display: block !important;
+                margin-top: 2px !important;
+            }
+
+            .mock-header-right {
+                gap: 10px !important;
+                justify-content: flex-end !important;
+                flex: 1 !important;
+            }
+
+            .mock-autosave-status {
+                padding: 6px !important;
+                border-radius: 50% !important;
+                background: rgba(16, 185, 129, 0.12) !important;
+            }
+
+            .mock-autosave-status span:last-child {
+                display: none !important;
+            }
+
+            .mock-timer-status {
+                padding: 4px 8px !important;
+                gap: 4px !important;
+            }
+
+            .mock-timer-status span:first-child {
+                display: none !important;
+            }
+
+            #mockSidebarTimerText {
+                font-size: 1.1rem !important;
+            }
+
+            .mock-submit-section-btn {
+                padding: 8px 12px !important;
+                font-size: 0.85rem !important;
+            }
+
+            /* Viewport responsive tweaks */
+            .mock-viewport {
+                position: relative !important;
+                flex-direction: column !important;
+            }
+
+            .mock-main {
+                flex: 1 !important;
+                padding: 16px !important;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+
+            /* Convert sidebar to drawer */
+            .mock-sidebar {
+                position: fixed !important;
+                top: 0 !important;
+                right: -320px !important;
+                width: 300px !important;
+                height: 100% !important;
+                z-index: 1002 !important;
+                background: var(--bg-secondary) !important;
+                transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                box-shadow: -8px 0 25px rgba(0,0,0,0.3) !important;
+                border-left: none !important;
+            }
+
+            .palette-open .mock-sidebar {
+                right: 0 !important;
+            }
+
+            .mock-drawer-close-btn {
+                display: inline-block !important;
+            }
+
+            /* Footer responsive tweaks (2x2 grid) */
+            .mock-footer {
+                height: auto !important;
+                min-height: auto !important;
+                padding: 8px 12px 10px 12px !important;
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important;
+            }
+
+            .mock-footer-left,
+            .mock-footer-right {
+                display: contents !important;
+            }
+
+            .mock-footer button {
+                margin: 0 !important;
+                padding: 10px 8px !important;
+                font-size: 0.85rem !important;
+                width: 100% !important;
+                border-radius: 8px !important;
+                justify-content: center !important;
+                align-items: center !important;
+                display: flex !important;
+                white-space: nowrap !important;
+            }
+
+            #mockConsolePrevBtn {
+                grid-column: 1 !important;
+                grid-row: 1 !important;
+            }
+
+            #mockConsoleNextBtn {
+                grid-column: 2 !important;
+                grid-row: 1 !important;
+            }
+
+            #mockMarkReviewBtn {
+                grid-column: 1 !important;
+                grid-row: 2 !important;
+            }
+
+            #mockClearBtn {
+                grid-column: 2 !important;
+                grid-row: 2 !important;
+            }
+
+            /* Question layout adjustments to avoid overlapping & horizontal scrolls */
+            .passage-box,
+            .character-display,
+            .question-text,
+            .option-text-label {
+                line-height: 1.95 !important; /* Premium furigana clearance */
+            }
+
+            .option-card {
+                padding: 12px 16px !important;
+            }
+
+            .option-circle-index {
+                margin-right: 10px !important;
+                width: 26px !important;
+                height: 26px !important;
+                font-size: 0.85rem !important;
+            }
+
+            .option-text-label {
+                font-size: 0.95rem !important;
+            }
+
+            /* Prevent layout shifts */
+            #mockGameContent {
+                margin-bottom: 15px !important;
+                gap: 16px !important;
+            }
+        }
+
+        @media (max-width: 600px) {
+            #mockExamSetupScreen .game-container {
+                padding: 20px 15px !important;
+                margin: 10px auto !important;
+            }
+            .modal-content {
+                padding: 20px 16px !important;
+                max-height: 95vh !important;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .mock-footer button {
+                font-size: 0.78rem !important;
+                padding: 8px 4px !important;
+            }
+            #mockSidebarTimerText {
+                font-size: 1rem !important;
+            }
+            .mock-palette-fab {
+                width: 46px;
+                height: 46px;
+                bottom: 85px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1060,43 +1319,43 @@
             <div id="mockTestLayout" style="display: none; flex-direction: column; width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; background: var(--bg-primary); color: var(--text-primary); z-index: 1000; box-sizing: border-box; overflow: hidden; font-family: 'Inter', system-ui, sans-serif;">
                 
                 <!-- TOP HEADER BAR -->
-                <header style="height: 60px; min-height: 60px; background: var(--bg-secondary); border-bottom: 1px solid rgba(128,128,128,0.15); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; box-sizing: border-box; flex-shrink: 0; z-index: 10;">
+                <header class="mock-header" style="height: 60px; min-height: 60px; background: var(--bg-secondary); border-bottom: 1px solid rgba(128,128,128,0.15); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; box-sizing: border-box; flex-shrink: 0; z-index: 10;">
                     <!-- Left: End Exam Button -->
-                    <button class="option-btn" style="margin: 0; padding: 8px 16px; font-size: 0.95rem; border-color: rgba(239, 68, 68, 0.4); color: #ef4444; background: rgba(239, 68, 68, 0.05); font-weight: 600; cursor: pointer; border-radius: 6px; display: flex; align-items: center; gap: 6px;" onclick="endSession()">
+                    <button class="option-btn mock-exit-btn" style="margin: 0; padding: 8px 16px; font-size: 0.95rem; border-color: rgba(239, 68, 68, 0.4); color: #ef4444; background: rgba(239, 68, 68, 0.05); font-weight: 600; cursor: pointer; border-radius: 6px; display: flex; align-items: center; gap: 6px;" onclick="endSession()">
                         Exit Exam
                     </button>
                     
                     <!-- Center: Exam Name and Section -->
-                    <div style="text-align: center; display: flex; flex-direction: column; gap: 2px;">
+                    <div class="mock-header-center" style="text-align: center; display: flex; flex-direction: column; gap: 2px;">
                         <span style="font-weight: 800; font-size: 1.1rem; color: var(--text-primary); letter-spacing: 0.5px;">JLPT N5 MOCK EXAMINATION</span>
                         <span id="mockHeaderSectionName" style="font-size: 0.75rem; text-transform: uppercase; color: var(--primary); font-weight: bold; letter-spacing: 1px;">Section 1: Vocabulary</span>
                     </div>
                     
                     <!-- Right: Timer, Progress & Submit Actions -->
-                    <div style="display: flex; align-items: center; gap: 20px;">
+                    <div class="mock-header-right" style="display: flex; align-items: center; gap: 20px;">
                         <!-- Connection status / autosave indicator -->
-                        <div style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 4px 10px; border-radius: 20px;">
+                        <div class="mock-autosave-status" style="display: flex; align-items: center; gap: 6px; font-size: 0.75rem; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 4px 10px; border-radius: 20px;">
                             <span style="display: inline-block; width: 6px; height: 6px; background: #10b981; border-radius: 50%; animation: pulse 2s infinite;"></span>
                             <span>Autosave Active</span>
                         </div>
                         
                         <!-- Real-time Exam Timer -->
-                        <div style="display: flex; align-items: center; gap: 8px; background: var(--bg-primary); border: 1px solid rgba(128,128,128,0.15); padding: 6px 12px; border-radius: 6px;">
+                        <div class="mock-timer-status" style="display: flex; align-items: center; gap: 8px; background: var(--bg-primary); border: 1px solid rgba(128,128,128,0.15); padding: 6px 12px; border-radius: 6px;">
                             <span style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Time Left:</span>
                             <span id="mockSidebarTimerText" style="font-size: 1.25rem; font-weight: 800; color: #ef4444; font-family: monospace; letter-spacing: 0.5px;">20:00</span>
                         </div>
                         
                         <!-- Submit Section Button -->
-                        <button class="submit-btn" id="mockSidebarSubmitBtn" style="margin: 0; padding: 10px 20px; font-size: 0.95rem; font-weight: bold; background: var(--success); cursor: pointer; border-radius: 6px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);" onclick="submitActiveSection()">
+                        <button class="submit-btn mock-submit-section-btn" id="mockSidebarSubmitBtn" style="margin: 0; padding: 10px 20px; font-size: 0.95rem; font-weight: bold; background: var(--success); cursor: pointer; border-radius: 6px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);" onclick="submitActiveSection()">
                             Submit Section
                         </button>
                     </div>
                 </header>
                 
                 <!-- MAIN VIEWPORT GRID -->
-                <div style="display: flex; flex: 1; overflow: hidden; box-sizing: border-box;">
+                <div class="mock-viewport" style="display: flex; flex: 1; overflow: hidden; box-sizing: border-box;">
                     <!-- LEFT COLUMN: Question Console -->
-                    <main style="flex: 7; display: flex; flex-direction: column; overflow-y: auto; padding: 32px; box-sizing: border-box; background: var(--bg-primary);">
+                    <main class="mock-main" style="flex: 7; display: flex; flex-direction: column; overflow-y: auto; padding: 32px; box-sizing: border-box; background: var(--bg-primary);">
                         
                         <!-- Progress Card header -->
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
@@ -1135,10 +1394,13 @@
                     </main>
                     
                     <!-- RIGHT COLUMN: Navigator Sidebar -->
-                    <aside style="flex: 3; max-width: 380px; min-width: 300px; background: var(--bg-secondary); border-left: 1px solid rgba(128,128,128,0.15); display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; flex-shrink: 0;">
+                    <aside class="mock-sidebar" style="flex: 3; max-width: 380px; min-width: 300px; background: var(--bg-secondary); border-left: 1px solid rgba(128,128,128,0.15); display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box; flex-shrink: 0;">
                         <!-- Nav panel Title -->
                         <div style="padding: 24px; border-bottom: 1px solid rgba(128,128,128,0.15); display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 1rem; font-weight: bold; color: var(--text-primary); letter-spacing: 0.5px;">Question Palette</span>
+                            <span style="font-size: 1rem; font-weight: bold; color: var(--text-primary); letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
+                                <button class="mock-drawer-close-btn" style="display: none; background: transparent; border: none; font-size: 1.5rem; color: var(--text-secondary); cursor: pointer; margin-right: 8px;" onclick="document.getElementById('mockTestLayout').classList.remove('palette-open')">&times;</button>
+                                Question Palette
+                            </span>
                             <span id="mockSummaryStatsText" style="font-size: 0.75rem; color: var(--text-secondary); background: rgba(128,128,128,0.1); padding: 4px 10px; border-radius: 12px;">Answered: 0/85</span>
                         </div>
                         
@@ -1172,11 +1434,19 @@
                         </div>
                     </aside>
                 </div>
+
+                <!-- Mobile Palette Drawer Backdrop -->
+                <div id="mockPaletteBackdrop" class="mock-palette-backdrop" onclick="document.getElementById('mockTestLayout').classList.remove('palette-open')"></div>
+                
+                <!-- Floating Action Button to open/close Palette on Mobile -->
+                <button class="mock-palette-fab" onclick="document.getElementById('mockTestLayout').classList.toggle('palette-open')">
+                    📋
+                </button>
                 
                 <!-- BOTTOM ACTION NAV BAR -->
-                <footer style="height: 70px; min-height: 70px; background: var(--bg-secondary); border-top: 1px solid rgba(128,128,128,0.15); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; box-sizing: border-box; flex-shrink: 0; z-index: 10;">
+                <footer class="mock-footer" style="height: 70px; min-height: 70px; background: var(--bg-secondary); border-top: 1px solid rgba(128,128,128,0.15); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; box-sizing: border-box; flex-shrink: 0; z-index: 10;">
                     <!-- Left Actions -->
-                    <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="mock-footer-left" style="display: flex; align-items: center; gap: 12px;">
                         <button class="option-btn" id="mockConsolePrevBtn" style="margin: 0; padding: 10px 20px; font-size: 0.95rem; font-weight: 600;" onclick="goToMockQuestion(-1)">
                             ← Previous
                         </button>
@@ -1186,7 +1456,7 @@
                     </div>
                     
                     <!-- Right Actions -->
-                    <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="mock-footer-right" style="display: flex; align-items: center; gap: 12px;">
                         <!-- Mark for Review Button -->
                         <button class="option-btn" id="mockMarkReviewBtn" style="margin: 0; padding: 10px 20px; font-size: 0.95rem; font-weight: 600; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b; background: rgba(245, 158, 11, 0.05);" onclick="toggleMarkForReview()">
                             ⭐ Mark for Review
@@ -4267,6 +4537,12 @@
             if (index >= sectionStart && index <= sectionEnd) {
                 gameState.currentQuestion = index;
                 renderMockQuestion();
+                
+                // Mobile: close palette drawer
+                const layout = document.getElementById('mockTestLayout');
+                if (layout) {
+                    layout.classList.remove('palette-open');
+                }
             }
         }
 
