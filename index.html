@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>日本語 - Complete Japanese Learning Game</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6C5CE7">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         /* ===== CSS Variables & Theme ===== */
         :root {
@@ -1621,7 +1624,7 @@
             </div>
         </div>
         <footer style="text-align: center; margin: 30px 0 15px 0; font-size: 0.85rem; color: var(--text-secondary); font-style: italic; border-top: 1px solid rgba(128,128,128,0.15); padding-top: 15px;">
-            designed by Bala
+            Designed by Bala
         </footer>
     </main>
 
@@ -5279,6 +5282,70 @@
 
         // ===== START =====
         document.addEventListener('DOMContentLoaded', init);
+
+        // ===== PWA INSTALLATION SYSTEM =====
+        let deferredPrompt;
+        const installBanner = document.getElementById('pwaInstallBanner');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Prevent Chrome 67 and earlier from automatically showing the prompt
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            deferredPrompt = e;
+            
+            // Only show automatically on mobile devices
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile && installBanner) {
+                // Show the install banner with a small delay for better UX
+                setTimeout(() => {
+                    installBanner.style.transform = 'translate(-50%, 0)';
+                }, 1500);
+            }
+        });
+
+        window.triggerInstall = function() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the install prompt');
+                } else {
+                    console.log('User dismissed the install prompt');
+                }
+                deferredPrompt = null;
+                dismissInstallPrompt();
+            });
+        };
+
+        window.dismissInstallPrompt = function() {
+            if (installBanner) {
+                installBanner.style.transform = 'translate(-50%, 150%)';
+            }
+        };
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+                    .catch(err => console.error('Service Worker registration failed:', err));
+            });
+        }
     </script>
+
+    <!-- PWA Install Prompt Banner -->
+    <div id="pwaInstallBanner" style="position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 150%); width: calc(100% - 32px); max-width: 450px; background: var(--bg-card); border: 1px solid rgba(128,128,128,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.15); padding: 18px; border-radius: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 12px; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); font-family: system-ui, -apple-system, sans-serif;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <img src="./icon-192.png" style="width: 48px; height: 48px; border-radius: 12px;" alt="App Icon">
+            <div style="flex: 1;">
+                <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-primary);">Install JLPT Mock Test</h4>
+                <p style="margin: 3px 0 0 0; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.3;">Add to home screen for a fast, native app experience offline.</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button onclick="dismissInstallPrompt()" style="background: transparent; border: none; color: var(--text-secondary); padding: 8px 16px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border-radius: 8px;">Later</button>
+            <button onclick="triggerInstall()" style="background: linear-gradient(135deg, var(--primary), var(--primary-dark)); border: none; color: white; padding: 8px 20px; font-size: 0.85rem; font-weight: bold; cursor: pointer; border-radius: 8px; box-shadow: 0 4px 12px rgba(108, 92, 231, 0.25);">Install</button>
+        </div>
+    </div>
 </body>
 </html>
